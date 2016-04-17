@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<!-- release v4.3.2, copyright 2014 - 2015 Kartik Visweswaran -->
+<html lang="en">
+    <head>
+        <meta charset="UTF-8"/>
+        <title>720 Cloud</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
+        <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+        <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css" rel="stylesheet">
+        <link href="css/fileinput.css" media="all" rel="stylesheet" type="text/css" />
+        <script src="js/fileinput.js" type="text/javascript"></script>
+    </head>
+    <body style="margin:10px;">
+
+        <div class="panel-heading" style="text-align:center"><h1>Upload Panoramas</h1></div>
+                <div class="form-group">
+                    <input id="fileToUpload" type="file" name="fileToUpload" multiple="true" data-overwrite-initial="true" >
+                </div>
+                <hr>
+                <form role="form">
+                      <div class="form-group">
+                        <label for="title">Title:</label>
+                        <input name="title" type="text" class="form-control" id="title">
+                      </div>
+                      <div class="form-group">
+                        <label for="description">Description:</label>
+                        <textarea name="description" class="form-control" rows="5" id="description"></textarea>
+                      </div>
+                      
+                      <button type="button" id="creatPanoBtn" class="btn btn-info" disabled>Create vTour</button>
+                      <button type="button" id="editVtrouBtn" class="btn btn-primary" disabled>Edit vTour</button>
+                    </form>
+                <hr>
+    <script>
+
+    var file_list="";
+    var file_forder="";
+    var this_seesion_id=Math.floor(Date.now() / 1000);
+    
+    $.post("createSession.php", {"this_seesion_id": this_seesion_id});  
+           
+
+    $("#fileToUpload").fileinput({
+        uploadUrl: 'upload.php', // you must set a valid URL here else you will get an error
+        overwriteInitial: true,
+        allowedFileExtensions : ['jpg', 'png','gif','jpeg'],
+
+        //allowedFileTypes: ['image', 'video', 'flash'],
+        slugCallback: function(filename) {
+            return filename.replace('(', '_').replace(']', '_');
+        }
+    });
+
+
+    $("#fileToUpload").on('fileuploaded', function(event, data, previewId, index) {
+
+        file_list+=("\""+data.response+"\"-identify-");
+        file_forder = data.response.substr(0, data.response.lastIndexOf("/"));
+        $("#creatPanoBtn").prop('disabled', false);
+    });
+
+
+        $("#fileToUpload").fileinput({
+            'showPreview' : false,
+            'allowedFileExtensions' : ['jpg', 'png','gif','jpeg'],
+            'elErrorContainer': '#errorBlock'
+        });
+         
+        
+        
+        $("#creatPanoBtn").click(function(){
+            $(this).attr('class', 'btn btn-warning');
+            $(this).html('Creating pano...');
+        $("#creatPanoBtn").prop('disabled', true);
+             formData = {
+            'title'              : $('input[name=title]').val(),
+            'description'        : $('textarea[name=description]').val(),
+            'files': file_list,
+            'fileforder'         : file_forder
+            };
+
+            $.ajax({
+                type        : 'POST', // define the type of HTTP verb we want to use (POST for our form)
+                url         : 'createpano.php', // the url where we want to POST
+                data        : formData, // our data object
+                dataType    : 'json', // what type of data do we expect back from the server
+                success: function(data, textStatus, xhr) {
+                  $("#creatPanoBtn").html('View');
+                  $("#creatPanoBtn").attr('class', 'btn btn-success');
+                  $("#creatPanoBtn").prop('disabled', false);
+                  $("#creatPanoBtn").click(function() {
+                      window.location.replace(data.fburl+"/vtour/");
+                    });
+                  $("#editVtrouBtn").prop('disabled', false);
+                  $("#editVtrouBtn").click(function() {
+                      window.location.replace(data.fburl+"/vtour/tour_editor.html");
+                    }); 
+
+                },
+                complete: function(xhr, textStatus) {
+                } 
+        });
+        
+        });
+
+
+      
+
+    </script>
+</html>
+
+
+
