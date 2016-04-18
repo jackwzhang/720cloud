@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>无人机项目演示</title>
+	<meta charset="utf-8" />
+
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta property="og:url"                content="http://www.vr3d.city" />
+	<meta property="og:type"               content="article" />
+	<meta property="og:title"              content="无人机项目成果在线演示" />
+	<meta property="og:description"        content="本站提供无人机低空摄影测量以及无人机全景的在线查看和分享" />
+	<meta property="og:image"              content="" />
+
+	<link href='https://api.mapbox.com/mapbox.js/v2.2.3/mapbox.css' rel='stylesheet' />
+	<link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.1/leaflet.css" />
+	<link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
+	<link rel="stylesheet" href="http://code.ionicframework.com/ionicons/1.5.2/css/ionicons.min.css">
+	<link rel="stylesheet" href="http://netdna.bootstrapcdn.com/font-awesome/4.0.0/css/font-awesome.css">
+	<link rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css">
+	<link rel="stylesheet" href="libs/plugin/am/leaflet.awesome-markers.css">
+    <link rel="stylesheet" href="../projects/libs/plugin/leaflet-measure/dist/leaflet-measure.css">
+    <link rel="stylesheet" href="../projects/libs/plugin/Leaflet.markercluster-master/dist/MarkerCluster.css" />
+	<link rel="stylesheet" href="../projects/libs/plugin/Leaflet.markercluster-master/dist/MarkerCluster.Default.css" />
+	<link rel="stylesheet" href="../projects/libs/plugin/Leaflet.defaultextent-master/dist/leaflet.defaultextent.css" />
+    
+    
+    
+   
+	<style>
+ 	 body { margin:0; padding:0; }
+ 	 #map { position:absolute; top:0; bottom:0; width:100%; }
+ 	 .awesome-marker i {
+        font-size: 20px;
+        margin-top: 9px;
+    }
+
+	</style>
+
+</head>
+<body>
+	
+	<div id="map"></div>
+	
+	<script src="http://cdn.leafletjs.com/leaflet-0.7.1/leaflet.js"></script>
+	<script src="https://code.jquery.com/jquery-2.1.3.min.js"></script>
+	<script src='https://api.mapbox.com/mapbox.js/v2.2.3/mapbox.js'></script>
+	<script src="../projects/libs/plugin/am/leaflet.awesome-markers.js"></script>
+	<script type="text/javascript" src="../projects/libs/plugin/vector/KML.js" ></script>
+    <script src="../projects/libs/plugin/leaflet-measure/dist/leaflet-measure.js"></script>
+	<script src="http://leaflet.github.io/Leaflet.markercluster/dist/leaflet.markercluster-src.js"></script>
+	<script src="../projects/libs/plugin/Leaflet.defaultextent-master/dist/leaflet.defaultextent.js"></script>
+	<script>
+		var map;
+
+		var accessToken = 'pk.eyJ1IjoiamFja3d6aGFuZyIsImEiOiIyOG12QnhFIn0.I6KyxlOdRbQilti0PGgR4A';
+
+		var mapBoxStreet = new L.tileLayer('https://api.mapbox.com/v4/mapbox.streets/{z}/{x}/{y}.png?access_token=' + accessToken, {
+						    attribution: '<a href="http://www.mapbox.com/about/maps/" target="_blank">Terms &amp; Feedback</a>',zIndex:0
+						});
+		var mapquestOAM = new L.TileLayer("http://{s}.mqcdn.com/tiles/1.0.0/sat/{z}/{x}/{y}.jpg", {
+			maxZoom: 20,
+			subdomains: ["oatile1", "oatile2", "oatile3", "oatile4"],
+			});
+
+		var mapBoxSatellite = new L.tileLayer('https://api.mapbox.com/v4/jackwzhang.obe07naj/{z}/{x}/{y}.png?access_token=' + accessToken, {
+						    attribution: '',zIndex:1
+						});
+
+		var baseLayers = {
+			"街道图": mapBoxStreet,
+			"卫星图": mapBoxSatellite
+		};
+
+		var orthoLayersGroup = new L.layerGroup();
+		var terrianLayersGroup = new L.layerGroup();
+        var kmlLayer = new L.KML();
+        var imbTile = new L.tileLayer();
+        var markerGroup = new L.markerClusterGroup();
+        //var wmsTile = new L.tileLayer.wms();
+        var overlays = {
+			"正射图": orthoLayersGroup,
+			"等值线": terrianLayersGroup
+			//"Hosted Tiles": hostedTiles
+			};
+		map = new L.Map("map",{
+			zoom: 4,
+            center: [38, 112],
+			layers: [mapBoxStreet],
+             defaultExtentControl: true
+			});
+                
+       var measureControl = new L.Control.Measure({
+           primaryLengthUnit: 'meters',secondaryLengthUnit: 'meters',primaryAreaUnit: 'sqmeters', secondaryAreaUnit: 'sqmeters',localization: 'ru',
+           position: 'bottomleft'           
+       });
+        measureControl.addTo(map);
+		 
+		
+
+		 var promise = $.getJSON("projects.geojson");
+
+		 promise.then(function(data) {
+
+		        
+		        var allPlaces = L.geoJson(data);
+
+		        // THIS IS NEW
+		        var projectPlaces = L.geoJson(data, {
+		            pointToLayer: function(feature, latlng) {
+		            var iMarker;
+                    
+		            if(feature.properties.uas.indexOf('Inspire')>-1)
+		            {
+		             iMarker = L.marker(latlng,{icon: L.AwesomeMarkers.icon({icon: 'close', markerColor: 'black', prefix: 'fa', spin:true}) });
+		           iMarker.bindPopup("<b>"+feature.properties.title+"</b><br/>"+
+		             					"<b>項目介紹：</b>"+feature.properties.desc+"<br/>"+
+		             					"<b>項目格式：</b>"+feature.properties.desc+"<br/>"+
+		             					"<b>拍攝日期：</b>"+feature.properties.date+"<br/>"+
+		             					"<b>使用設備：</b><br/><img width='100px' src='img/DJI-Inspire1-Aircraft-excludes-Remote-Controller-Camera-Battery-and-Battery-Charger-.jpg_200x200.jpg' /><hr>"
+		             					+"<button type='button' class='btn btn-default btn-sm ' onclick='map.fitWorld()'><span class='glyphicon glyphicon-globe' aria-hidden='true'></span> 返回</button>"
+		             					);
+		            }
+
+		        	if(feature.properties.uas.indexOf('phantom')>-1){
+		             iMarker = L.marker(latlng,{icon: L.AwesomeMarkers.icon({icon: 'plus', markerColor: 'orange', prefix: 'fa', spin:true}) });
+		        	iMarker.bindPopup("<b>"+feature.properties.title+"</b><br/>"+
+		             					"<b>項目介紹：</b>"+feature.properties.desc+"<br/>"+
+		             					"<b>拍攝日期：</b>"+feature.properties.date+"<br/>"+
+		             					"<b>使用設備：</b><br/><img width='100px' src='img/dji-phantom-2.jpg' /><hr>"
+		             					+"<button type='button' class='btn btn-default btn-sm ' onclick='map.fitWorld()'><span class='glyphicon glyphicon-globe' aria-hidden='true'></span> 返回</button>"
+		             					);
+		        	}
+					if(feature.properties.uas.indexOf('phantom3')>-1){
+		             iMarker = L.marker(latlng,{icon: L.AwesomeMarkers.icon({icon: 'plus', markerColor: 'orange', prefix: 'fa', spin:true}) });
+		        	iMarker.bindPopup("<b>"+feature.properties.title+"</b><br/>"+
+		             					"<b>項目介紹：</b>"+feature.properties.desc+"<br/>"+
+		             					"<b>拍攝日期：</b>"+feature.properties.date+"<br/>"+
+		             					"<b>使用設備：</b><br/><img width='100px' src='http://www5.djicdn.com/assets/images/products/phantom-3-pro/index/phantom-3-pro-v2@2x-011d1bce9f42d76ddb1c4e4ae3332421.jpg' /><hr>"
+		             					+"<button type='button' class='btn btn-default btn-sm ' onclick='map.fitWorld()'><span class='glyphicon glyphicon-globe' aria-hidden='true'></span> 返回</button>"
+		             					);
+		        	}
+		        	if(feature.properties.uas.indexOf('ebee')>-1){
+		        	iMarker = L.marker(latlng,{icon: L.AwesomeMarkers.icon({icon: 'fa-paper-plane', markerColor: 'darkpurple',iconColor:'#ffff00', prefix: 'fa', spin:false}) });
+		        	iMarker.bindPopup("<b>"+feature.properties.title+"</b><br/>"+
+		             					"<b>項目介紹：</b>"+feature.properties.desc+"<br/>"+
+		             					"<b>拍攝日期：</b>"+feature.properties.date+"<br/>"+
+		             					"<b>使用設備：</b><br/><img width='100px' src='img/ebee-100.png' /><hr>"
+		             					+"<button type='button' class='btn btn-default btn-sm ' onclick='map.fitWorld()'><span class='glyphicon glyphicon-globe' aria-hidden='true'></span> 返回</button>"
+		             					);
+		        	}
+		             
+		             iMarker.on('click', function(e) {
+                         orthoLayersGroup.clearLayers();
+                         terrianLayersGroup.clearLayers();
+                         
+							    map.setView(iMarker.getLatLng(),17);
+                              //  imbTile = new L.tileLayer('http://geosys.org:809/uasprojects/GetTiles.php?db='+feature.properties.pname+'.mbtiles&z={z}&x={x}&y={y}', {
+						     imbTile = new L.tileLayer('mbtiles.php?db=projects/'+feature.properties.pname+'.mbtiles&z={z}&x={x}&y={y}', {
+				                 tms: true,
+						    maxZoom: 22,
+						    attribution: '',
+						    opacity: 1,
+						    zIndex:2,
+							attribution: '|<a href="http://geosys.org">Geosys.org</a>'
+						});
+                        
+                        //kmlLayer = new L.KML('projects/'+feature.properties.pname+'/elev.kml', {async: true});
+                        wmsTile =  L.tileLayer.wms("http://geosys.org:8080/geoserver/uasprojects/wms", {
+												    layers: 'uasprojects:'+feature.properties.pname,
+												    format: 'image/gif',
+												    version:'1.1.1',
+												    transparent: true,
+												    zIndex:9999
+												});
+                                                
+						orthoLayersGroup.addLayer(imbTile);
+			            terrianLayersGroup.addLayer(wmsTile);
+						map.addLayer(orthoLayersGroup);
+						map.addLayer(terrianLayersGroup);
+                        
+						
+                    });
+		             markerGroup.addLayer(iMarker);
+		                return iMarker;
+		            }
+		        });
+		     
+		       // projectPlaces.addTo(map)
+		    });
+
+			
+
+			layersControl = new L.Control.Layers(baseLayers, overlays, {
+				collapsed: false
+			});
+			map.addLayer(markerGroup);
+
+			
+
+			map.addControl(layersControl);
+
+			
+			
+		
+	</script>
+
+
+
+
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-71108989-1', 'auto');
+  ga('send', 'pageview');
+
+</script>
+</body>
+</html>

@@ -1,0 +1,1 @@
+ "C:\krpano\krpanotools64.exe" kmakemultires -config=templates\vtour-normal.config inputfiles "E:\xampp\htdocs\public\720cloud\images\1460748563\R0010025.jpg" 
